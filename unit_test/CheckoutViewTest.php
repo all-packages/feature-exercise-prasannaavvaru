@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
-use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 use App\CheckoutView;
 
 /**
@@ -25,7 +24,7 @@ class CheckoutViewTest extends TestCase
         $request = array(
             array(
                 'item' => 'A',
-                'quantity' => '',
+                'quantity' => 4,
             ),
             array(
                 'item' => 'B',
@@ -67,7 +66,7 @@ class CheckoutViewTest extends TestCase
         );
         
         $testArray = $this->checkout->calculateCart($request);
-        $this->assertArrayHasKey('data', $testArray);
+        $this->assertArrayHasKey('data', $testArray,json_encode($testArray));
     }
 
     /** @test 
@@ -100,7 +99,7 @@ class CheckoutViewTest extends TestCase
         );
         
         $testArray = $this->checkout->ViewCart($request);
-        $this->assertArrayHasKey('data', $testArray);
+        $this->assertArrayHasKey('data', $testArray, json_encode($testArray));
     }
 
 }
