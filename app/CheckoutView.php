@@ -1,14 +1,18 @@
 <?php
 namespace App;
 
-use App\validate\ValidateRequest;
-use App\Calculations\ItemPriceCalculation;
+use App\validate\ValidateRequestInterface;
+
+use App\Calculations\ItemPriceCalculationInterface;
 
 class CheckoutView
 {
-
-    public function __construct(){
-
+    private $validate = '';
+    private $itemCalculate = '';
+    private $itemPriceCalulation = '';
+    public function __construct(ValidateRequestInterface $validateInterface, ItemPriceCalculationInterface $itemCalInterface){
+        $this->validate = $validateInterface;
+        $this->itemPriceCalulation = $itemCalInterface;
     }
 
     /**
@@ -55,7 +59,7 @@ class CheckoutView
             'item' => 'required|string',
             'quantity' => 'required|int'
         );
-        $validateResult = ValidateRequest::Validate($request, $validateRules);
+        $validateResult = $this->validate::Validate($request, $validateRules);
         if($validateResult !== false)
             return $validateResult;
         else
@@ -77,8 +81,6 @@ class CheckoutView
             $productsJsonMasterData = $productsJsonMasterData[0];
     
             $itemSummeryDetails = [];
-    
-            $itemPriceCalulation = new ItemPriceCalculation();
             
             foreach($request as $key=>$itemObj)
             {
@@ -92,11 +94,11 @@ class CheckoutView
                 $productMasterData = $productsJsonMasterData[$itemName];
                 
                 if(!isset($productMasterData['special_price_details'])){
-                    $itemSummery = $itemPriceCalulation->ItemTotalAmount($itemQty, $productMasterData);
+                    $itemSummery = $this->itemPriceCalulation->ItemTotalAmount($itemQty, $productMasterData);
                 }elseif(count($productMasterData['special_price_details']) == 1){
-                    $itemSummery = $itemPriceCalulation->ItemTotalSpecialAmount($itemQty, $itemName, $request, $productsJsonMasterData);
+                    $itemSummery = $this->itemPriceCalulation->ItemTotalSpecialAmount($itemQty, $itemName, $request, $productsJsonMasterData);
                 }else{
-                    $itemSummery = $itemPriceCalulation->ItemTotalSpecialAmount($itemQty, $itemName, $request, $productsJsonMasterData, 'M');
+                    $itemSummery = $this->itemPriceCalulation->ItemTotalSpecialAmount($itemQty, $itemName, $request, $productsJsonMasterData, 'M');
                 }
                 
                 if($itemSummery['status'] === false)
@@ -105,7 +107,7 @@ class CheckoutView
                 $itemSummeryDetails[$itemName] = $itemSummery['details'];  
     
             }
-    
+            
             $data = $itemSummeryDetails;
             
             $response = array('status' =>$status, 'error'=>$error, 'data'=>$data);

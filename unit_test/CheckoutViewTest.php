@@ -2,6 +2,8 @@
 declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 use App\CheckoutView;
+use App\Validate\ValidateRequest;
+use App\Calculations\ItemPriceCalculation;
 
 /**
  * CheckoutViewTest
@@ -13,7 +15,7 @@ class CheckoutViewTest extends TestCase
 
     public function setUp() : void
     {
-        $this->checkout = new CheckoutView;
+        $this->checkout = new CheckoutView(new ValidateRequest(), new ItemPriceCalculation());
     }
     
     /** @test 
