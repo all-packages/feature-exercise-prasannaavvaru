@@ -106,7 +106,7 @@ class CheckoutView
                 if($itemSummery['status'] === false)
                     throw new Exception($itemSummery['details']);
     
-                $itemSummeryDetails[$itemName] = $itemSummery['details'];  
+                $itemSummeryDetails[$itemName] = (isset($itemSummeryDetails[$itemName])) ? $itemSummeryDetails[$itemName] + $itemSummery['details'] : $itemSummery['details'];  
     
             }
             
