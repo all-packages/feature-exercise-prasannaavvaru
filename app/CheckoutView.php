@@ -119,6 +119,7 @@ class CheckoutView
             $response = array('status' =>$status, 'error'=>$error);
         }
 
+        print_r( $response );
         return $response;
         
     }
