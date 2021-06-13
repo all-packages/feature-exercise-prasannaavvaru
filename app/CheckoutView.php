@@ -5,6 +5,8 @@ use App\validate\ValidateRequestInterface;
 
 use App\Calculations\ItemPriceCalculationInterface;
 
+use Exception;
+
 class CheckoutView
 {
     private $validate = '';
@@ -38,7 +40,7 @@ class CheckoutView
             
             $data = $totalCart;
             $response = array('status' =>$status, 'error'=>$error, 'data'=>$data);
-        }catch(Exception $e){
+        }catch(\Exception $e){
             $status = 500;
             $error = $e->getMessage();
             $response = array('status' =>$status, 'error'=>$error);
@@ -113,13 +115,14 @@ class CheckoutView
             $response = array('status' =>$status, 'error'=>$error, 'data'=>$data);
             
         }
-        catch(Exception $e){
+        catch(\Exception $e){
             $status = 500;
             $error = $e->getMessage();
             $response = array('status' =>$status, 'error'=>$error);
         }
 
         print_r( $response );
+
         return $response;
         
     }
