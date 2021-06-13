@@ -1,0 +1,41 @@
+[{
+    "A" : {
+        "unit_price" : 50,
+        "special_price_details" : [{
+            "equals" : 3,
+            "price" : 130
+        }]
+    },
+    "B" : {
+        "unit_price" : 30,
+        "special_price_details" : [{
+            "equals" : 2,
+            "price" : 45
+        }]
+    },
+    "C" : {
+        "unit_price" : 20,
+        "special_price_details" : [
+            {
+                "equals" : 2,
+                "price" : 38
+            },
+            {
+                "equals" : 3,
+                "price" : 50
+            }
+
+        ]
+            
+    },
+    "D" : {
+        "unit_price" : 15,
+        "special_price_details" : [{
+            "equals" : "A",
+            "price" : 5
+        }]
+    },
+    "E" : {
+        "unit_price" : 5
+    }
+}]
