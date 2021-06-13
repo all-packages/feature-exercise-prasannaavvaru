@@ -83,6 +83,8 @@ class CheckoutView
             $productsJsonMasterData = $productsJsonMasterData[0];
     
             $itemSummeryDetails = [];
+
+            $request = $this->combineSameItems($request);
             
             foreach($request as $key=>$itemObj)
             {
@@ -126,4 +128,28 @@ class CheckoutView
         return $response;
         
     }
+
+
+    /**
+     * if user send same item in seperate array this function will combine both items
+     * @param $requst user input data
+     * @return $newRequest new updated request data
+     */
+    private function combineSameItems(array $request) : array{
+        $newRequest = array();
+
+        foreach($request as $key=>$item)
+        {   
+            $searchItem = array_search($item['item'],array_column($newRequest,'item'));
+            if($searchItem === false){
+                $newRequest[] = $item;
+            }else{
+                $newRequest[$searchItem]['quantity'] += $item['quantity'];
+            }
+        }
+
+        return $newRequest;
+    }
 }
+
+    
