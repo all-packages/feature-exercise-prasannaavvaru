@@ -2,9 +2,10 @@
 namespace App\Calculations;
 
 Interface ItemPriceCalculationInterface{
-    public function ItemTotalAmount(int $itemQty, array $productMasterData);
-    public function ItemTotalSpecialAmount(int $itemQty, string $itemName, array $request, array $productsJsonMasterData, string $equals);
-    public function ItemSpecialWithAnotherItem(int $itemQty, array $specialPriceDetails, int $unitPrice, array $request);
-    public function ItemSpecialItemMore(int $itemQty, array $specialPriceDetails, int $unitPrice);
+    public function getItemTotalPrice( string $itemName, int $itemQty, array $request );
+    public function ItemTotalAmount( int $itemQty );
+    public function ItemTotalSpecialAmount( int $itemQty, string $itemName, array $request, string $equals );
+    public function ItemSpecialWithAnotherItem( int $itemQty, int $unitPrice, array $request );
+    public function ItemSpecialItemMore( int $itemQty, int $unitPrice );
    
 }

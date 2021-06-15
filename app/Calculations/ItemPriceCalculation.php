@@ -5,8 +5,33 @@ use App\Calculations\ItemPriceCalculationInterface;
 
 class ItemPriceCalculation implements ItemPriceCalculationInterface
 {
-    public function __construct(){
+    private $productsJsonMasterData;
+    private $productMasterData;
+    private $specialPriceDetails;
+    public function __construct() {
+        $this->productsJsonMasterData = json_decode(file_get_contents('./app/products.json'),true)[0];
+    }
 
+    public function getItemTotalPrice(
+        string $itemName,
+        int $itemQty,
+        array $request
+    ): ?int {
+        if (!isset($this->productsJsonMasterData[$itemName])) {
+            return null;
+        }
+
+        $this->productMasterData = $this->productsJsonMasterData[$itemName];
+        
+        if (!isset($this->productMasterData['special_price_details'])) {
+            $itemTotalPrice = $this->ItemTotalAmount($itemQty);
+        } elseif ( count($this->productMasterData['special_price_details']) == 1 ){
+            $itemTotalPrice = $this->ItemTotalSpecialAmount($itemQty, $itemName, $request);
+        } else {
+            $itemTotalPrice = $this->ItemTotalSpecialAmount($itemQty, $itemName, $request, 'M');
+        }
+
+        return $itemTotalPrice;
     }
 
 
@@ -16,19 +41,11 @@ class ItemPriceCalculation implements ItemPriceCalculationInterface
      * @param array $productMasterData specific item master data from products table. It contains unit price, special price rules
      * @return array $response It will return item total for selected quantity
      */
-    public function ItemTotalAmount(int $itemQty, array $productMasterData) : array{
-            try{
-                $unitPrice = (isset($productMasterData['unit_price'])) ? $productMasterData['unit_price'] : 0;
-                $status = true;
-                $details = $itemQty * $unitPrice;
-                $error = 'Success';
-            }catch(Exception $e){
-                $status = false;
-                $error = $e->getMessage();
-                $details = '';
-            }
+    public function ItemTotalAmount(int $itemQty): int {
+                $unitPrice = (isset($this->productMasterData['unit_price'])) ? $this->productMasterData['unit_price'] : 0;
+                $itemTotalPrice = $itemQty * $unitPrice;
 
-            return array('status' => $status, 'details' => $details, 'error' => $error);
+            return $itemTotalPrice;
     }
 
     /**
@@ -40,51 +57,35 @@ class ItemPriceCalculation implements ItemPriceCalculationInterface
      * @param string @equals S/M base S or M total calculation will be change, form some products multiple rules are mentioned based on that calculation will do
      * @return array $response after all calculations total amounts with items list
      */
-    public function ItemTotalSpecialAmount(int $itemQty, string $itemName, array $request, array $productsJsonMasterData, string $equals = 'S') : array{
-            try{
-                $getItemsTotal = 0;
-                $productMasterData = $productsJsonMasterData[$itemName];
-                if($equals == 'S'){
-                    $specialPriceDetails = $productMasterData['special_price_details'][0];
-                }                
-                else{
-                    $randSpecialPriceDetails = array_rand($productMasterData['special_price_details']); 
-                    $specialPriceDetails = $productMasterData['special_price_details'][$randSpecialPriceDetails];
+    public function ItemTotalSpecialAmount(
+        int $itemQty, 
+        string $itemName, 
+        array $request,
+        string $equals = 'S'
+    ): int {
+                if ($equals == 'S') {
+                    $this->specialPriceDetails = $this->productMasterData['special_price_details'][0];
+                } else {
+                    $randSpecialPriceDetails = array_rand($this->productMasterData['special_price_details']); 
+                    $this->specialPriceDetails = $this->productMasterData['special_price_details'][$randSpecialPriceDetails];
                 }
-                $specialPriceItemEquals = $specialPriceDetails['equals'];
-                $unitPrice = (isset($productMasterData['unit_price'])) ? $productMasterData['unit_price'] : 0;
-                $specialPrice = $specialPriceDetails['price'];
-                if(isset($productsJsonMasterData[$specialPriceItemEquals])){
-                    $getItemsTotal = $this->ItemSpecialWithAnotherItem($itemQty, $specialPriceDetails, $unitPrice, $request);
-                    if($getItemsTotal['status'] === false)
-                        throw new Exception($getItemsTotal['error']);
-                }
-                else{
-                    if($itemQty <= $specialPriceItemEquals)
-                    {
-                        $getItemsTotal = $unitPrice * $itemQty;
-                    }                       
-                    elseif($itemQty === $specialPriceItemEquals)
-                    {
-                        $getItemsTotal = $itemQty * $specialPrice;
-                    }                        
-                    elseif($itemQty > $specialPriceItemEquals){
-                        $getItemsTotal = $this->ItemSpecialItemMore($itemQty, $specialPriceDetails, $unitPrice);   
-                    
-                        if($getItemsTotal['status'] === false)
-                            throw new Exception($getItemsTotal['error']);
+                $specialPriceItemEquals = $this->specialPriceDetails['equals'];
+                $unitPrice = (isset($this->productMasterData['unit_price'])) ? $this->productMasterData['unit_price'] : 0;
+                $specialPrice = $this->specialPriceDetails['price'];
+                
+                if (isset($this->productsJsonMasterData[$specialPriceItemEquals])) {
+                    $itemTotalPrice = $this->ItemSpecialWithAnotherItem($itemQty, $unitPrice, $request);
+                } else {
+                    if ($itemQty < $specialPriceItemEquals) {
+                        $itemTotalPrice = $unitPrice * $itemQty;
+                    } elseif ($itemQty === $specialPriceItemEquals) {
+                        $itemTotalPrice = $specialPrice;
+                    } elseif ($itemQty > $specialPriceItemEquals) {
+                        $itemTotalPrice = $this->ItemSpecialItemMore($itemQty, $unitPrice);   
                     }     
                 }
-                $status = true;
-                $details = isset($getItemsTotal['details']) ? $getItemsTotal['details'] : $getItemsTotal;
-                $error = 'Success';
-            }catch(Exception $e){
-                $status = false;
-                $error = $e->getMessage();
-                $details = '';
-            }
 
-            return array('status' => $status, 'details' => $details, 'error' => $error);
+                return $itemTotalPrice;
     }
     
 
@@ -96,34 +97,25 @@ class ItemPriceCalculation implements ItemPriceCalculationInterface
      * @param array $request user selected Item list
      * @return array $response User will get total amounts for reach item after rules applied
      */
-    public function ItemSpecialWithAnotherItem(int $itemQty, array $specialPriceDetails, int $unitPrice, array $request) : array{
-            try{
-                $itemPrice = 0;
-                $linkedItem = $specialPriceDetails['equals'];
-
+    public function ItemSpecialWithAnotherItem(
+        int $itemQty,
+        int $unitPrice, 
+        array $request
+    ): int {
+                $linkedItem = $this->specialPriceDetails['equals'];
                 $linkedItemKey = array_search($linkedItem, array_column($request, 'item'));
-
-                if($linkedItemKey !== false){
+                if ($linkedItemKey !== false) {
                     $linkedItemArray = $request[$linkedItemKey];
                     $linkedItemQty = $linkedItemArray['quantity'];
-                    if($itemQty > $linkedItemQty)
-                        $itemPrice = 5 + (($itemQty - $linkedItemQty) * $unitPrice);
-                    elseif($itemQty <= $linkedItemQty)
-                        $itemPrice = 5;
-                }else{
-                    $itemPrice = $itemQty * $unitPrice;
+                    if ($itemQty > $linkedItemQty)
+                        $itemTotalPrice = 5 + (($itemQty - $linkedItemQty) * $unitPrice);
+                    elseif ($itemQty <= $linkedItemQty)
+                        $itemTotalPrice = 5;
+                } else {
+                    $itemTotalPrice = $itemQty * $unitPrice;
                 }
 
-                $status = true;
-                $details = $itemPrice;
-                $error = 'Success';
-            }catch(Exception $e){
-                $status = false;
-                $error = $e->getMessage();
-                $details = '';
-            }
-
-            return array('status' => $status, 'details' => $details, 'error' => $error);
+            return $itemTotalPrice;
 
     }
 
@@ -134,36 +126,28 @@ class ItemPriceCalculation implements ItemPriceCalculationInterface
      * @param int $unitPrice item unit price
      * @return array $response User will get total amounts for reach item after rules applied 
      */
-    public function ItemSpecialItemMore(int $itemQty, array $specialPriceDetails, int $unitPrice) : array{
-            try{ 
-                $itemPrice = 0;
-                $specialPriceItemEquals = $specialPriceDetails['equals'];
-                $specialPrice = $specialPriceDetails['price'];
+    public function ItemSpecialItemMore(
+        int $itemQty,
+        int $unitPrice
+    ): int {
+                $specialPriceItemEquals = $this->specialPriceDetails['equals'];
+                $specialPrice = $this->specialPriceDetails['price'];
+
+                $itemTotalPrice = 0;
 
                 $itemNewQty = $itemQty;
-                while($itemNewQty > 0)
-                {
-                    if($itemNewQty < $specialPriceItemEquals)
-                    {
-                        $itemPrice += $itemNewQty * $unitPrice;
+                while($itemNewQty > 0) {
+                    if ($itemNewQty < $specialPriceItemEquals) {
+                        $itemTotalPrice =  $itemTotalPrice + ($itemNewQty * $unitPrice);
                         break;  
                     }
                     
-                    $itemPrice += $specialPrice;
+                    $itemTotalPrice = $itemTotalPrice + $specialPrice;
 
                     $itemNewQty = $itemNewQty - $specialPriceItemEquals;
                 }
 
-                $status = true;
-                $details = $itemPrice;
-                $error = 'Success';
-            }catch(Exception $e){
-                $status = false;
-                $error = $e->getMessage();
-                $details = '';
-            }
-
-            return array('status' => $status, 'details' => $details, 'error' => $error);
+                return $itemTotalPrice;
 
     }
 }
